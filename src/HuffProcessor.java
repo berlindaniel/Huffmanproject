@@ -120,7 +120,7 @@ public class HuffProcessor {
 	private void writeCompressedBits(String[] encoding, BitInputStream in, BitOutputStream out) {
 		while (true) {
 			int bits = in.readBits(BITS_PER_WORD);
-			if (in.readBits(BITS_PER_WORD) == -1) break;
+			if (bits == -1) break;
 			String code = encoding[bits];
 			out.writeBits(code.length(), Integer.parseInt(code, 2));
 		}
