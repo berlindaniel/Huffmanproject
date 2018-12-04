@@ -75,15 +75,13 @@ public class HuffProcessor {
 	
 	private HuffNode makeTreeFromCounts(int[] counts) {
 		PriorityQueue<HuffNode> pq = new PriorityQueue<>();
-		
-		for (int i = counts.length-1; i > 0; i --) {
-			pq.add(new HuffNode(i, counts[i], null, null));
+		for (int i = 0; i < counts.length; i++) {
+			if (counts[i] > 0) pq.add(new HuffNode(i, counts[i], null, null));
 		}
-		
 		while (pq.size() > 1) {
 			HuffNode left = pq.remove();
 			HuffNode right = pq.remove();
-			HuffNode temp = new HuffNode(left.myValue, left.myWeight + right.myWeight);
+			HuffNode temp = new HuffNode(0, left.myWeight + right.myWeight, left, right);
 			pq.add(temp);
 		}
 		HuffNode root = pq.remove();
