@@ -121,16 +121,13 @@ public class HuffProcessor {
 	
 	private void writeCompressedBits(String[] encoding, BitInputStream in, BitOutputStream out) {
 		while (true) {
-			int bits = in.readBits(1);
-			if (bits == PSEUDO_EOF) {
-				String c = encoding[PSEUDO_EOF];
-				out.writeBits(c.length(), Integer.parseInt(c, 2));
-			}
-			if (encoding[bits] == null) break;
+			int bits = in.readBits(BITS_PER_WORD);
+			if (in.readBits(BITS_PER_WORD) == -1) break;
 			String code = encoding[bits];
 			out.writeBits(code.length(), Integer.parseInt(code, 2));
 		}
-		
+		String c = encoding[PSEUDO_EOF];
+		out.writeBits(c.length(), Integer.parseInt(c, 2));
 	}
 	/**
 	 * Decompresses a file. Output file must be identical bit-by-bit to the
