@@ -64,12 +64,10 @@ public class HuffProcessor {
 	
 	private int[] readForCounts(BitInputStream in) {
 		int[] ret = new int[ALPH_SIZE + 1];
-		int i = 0;
 		while (true) {
 			int val = in.readBits(BITS_PER_WORD);
 			if (val == -1) break;
-			ret[i] = val;
-			i+=BITS_PER_WORD;
+			ret[val]+=1;
 		}
 		ret[PSEUDO_EOF] = 1;
 		return ret;
