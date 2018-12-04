@@ -126,6 +126,7 @@ public class HuffProcessor {
 				String c = encoding[PSEUDO_EOF];
 				out.writeBits(c.length(), Integer.parseInt(c, 2));
 			}
+			if (encoding[bits] == null) break;
 			String code = encoding[bits];
 			out.writeBits(code.length(), Integer.parseInt(code, 2));
 		}
