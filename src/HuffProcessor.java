@@ -1,3 +1,4 @@
+import java.util.PriorityQueue;
 
 /**
  * Although this class has a history of several years,
@@ -41,13 +42,96 @@ public class HuffProcessor {
 	 *            Buffered bit stream writing to the output file.
 	 */
 	public void compress(BitInputStream in, BitOutputStream out){
-
-		while (true){
+		
+		int[] counts = readForCounts(in);
+		HuffNode root = makeTreeFromCounts(counts);
+		String[] codings = makeCodingsFromTree(root);
+		
+		out.writeBits(BITS_PER_INT, HUFF_TREE);
+		writeHeader(root, out);
+		
+		in.reset();
+		writeCompressedBits(codings, in, out);
+		out.close();
+		
+		/*while (true){
 			int val = in.readBits(BITS_PER_WORD);
 			if (val == -1) break;
 			out.writeBits(BITS_PER_WORD, val);
 		}
-		out.close();
+		out.close();*/
+	}
+	
+	private int[] readForCounts(BitInputStream in) {
+		int[] ret = new int[ALPH_SIZE + 1];
+		int i = 0;
+		while (true) {
+			int val = in.readBits(BITS_PER_WORD);
+			if (val == -1) break;
+			ret[i] = val;
+			i+=BITS_PER_WORD;
+		}
+		ret[PSEUDO_EOF] = 1;
+		return ret;
+	}
+	
+	private HuffNode makeTreeFromCounts(int[] counts) {
+		PriorityQueue<HuffNode> pq = new PriorityQueue<>();
+		
+		for (int i = counts.length-1; i > 0; i --) {
+			pq.add(new HuffNode(i, counts[i], null, null));
+		}
+		
+		while (pq.size() > 1) {
+			HuffNode left = pq.remove();
+			HuffNode right = pq.remove();
+			HuffNode temp = new HuffNode(left.myValue, left.myWeight + right.myWeight);
+			pq.add(temp);
+		}
+		HuffNode root = pq.remove();
+		return root;
+	}
+	
+	private String[] makeCodingsFromTree(HuffNode root) {
+		String[] encodings = new String[ALPH_SIZE + 1];
+		codingHelper(root, "", encodings);
+		return encodings;
+	}
+	
+	private void codingHelper(HuffNode root, String path, String[] encodings) {
+		if (root.myLeft == null && root.myRight == null) {
+			encodings[root.myValue] = path;
+			return;
+		}
+		else {
+			codingHelper(root.myRight, path + "1", encodings);
+			codingHelper(root.myLeft, path + "0", encodings);
+		}
+	}
+	
+	private void writeHeader(HuffNode root, BitOutputStream out) {
+		if (root.myLeft == null && root.myRight == null) {
+			out.writeBits(1, 1);
+			out.writeBits(BITS_PER_WORD + 1, root.myValue);
+		}
+		else {
+			out.writeBits(1, 0);
+			writeHeader(root.myLeft, out);
+			writeHeader(root.myRight, out);
+		}
+	}
+	
+	private void writeCompressedBits(String[] encoding, BitInputStream in, BitOutputStream out) {
+		while (true) {
+			int bits = in.readBits(1);
+			if (bits == PSEUDO_EOF) {
+				String c = encoding[PSEUDO_EOF];
+				out.writeBits(c.length(), Integer.parseInt(c, 2));
+			}
+			String code = encoding[bits];
+			out.writeBits(code.length(), Integer.parseInt(code, 2));
+		}
+		
 	}
 	/**
 	 * Decompresses a file. Output file must be identical bit-by-bit to the
@@ -75,7 +159,7 @@ public class HuffProcessor {
 		out.close();*/
 	}
 	
-	public HuffNode readTreeHeader(BitInputStream in) {
+	private HuffNode readTreeHeader(BitInputStream in) {
 		int bit = in.readBits(1);
 		if (bit == -1) throw new IndexOutOfBoundsException("illegal value");
 		if (bit == 0) {
@@ -89,8 +173,7 @@ public class HuffProcessor {
 		}
 	}
 	
-	public void readCompressedBits(HuffNode rt, BitInputStream in, BitOutputStream out) {
-		//complete method
+	private void readCompressedBits(HuffNode rt, BitInputStream in, BitOutputStream out) {
 		HuffNode current = rt;
 		while (true) {
 			int bits = in.readBits(1);
